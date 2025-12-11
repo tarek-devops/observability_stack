@@ -1,0 +1,32 @@
+# Azure DevOps Pipeline (Windows)
+# Save as azure-pipelines-windows.yml
+trigger:
+- main
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+- powershell: Write-Host "Step 1: Print Hello World"
+  displayName: 'Print Hello World'
+
+- powershell: Get-ChildItem Env:
+  displayName: 'Show Environment Variables'
+
+- powershell: Get-PSDrive -PSProvider FileSystem
+  displayName: 'Check Disk Space'
+
+- powershell: Invoke-WebRequest -Uri https://www.example.com -OutFile example.html
+  displayName: 'Download Example.com'
+
+- powershell: Compress-Archive -Path * -DestinationPath output.zip
+  displayName: 'Archive Workspace'
+
+# - task: PowerShell@2
+#   displayName: 'Display Environment Info'
+#   inputs:
+#     targetType: 'inline'
+#     script: |
+#       Write-Host "OS: $([System.Environment]::OSVersion.VersionString)"
+#       Write-Host "PowerShell: $($PSVersionTable.PSVersion)"
+#       Write-Host "Build: $(Build.BuildNumber)"

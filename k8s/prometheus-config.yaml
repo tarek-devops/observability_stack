@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: observability
+  labels:
+    app: prometheus
+data:
+# ServiceType: ClusterIP with no ingress or LoadBalancer
+#targets: ['otel-collector.observability.svc.cluster.local:8889']
+# ClusterIP with ingress targets: ['otel-collector:8889']
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s
+    scrape_configs:
+      - job_name: 'otel-collector'
+        static_configs:
+          - targets: ['otel-collector.observability.svc.cluster.local:8889']

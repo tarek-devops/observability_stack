@@ -1,0 +1,60 @@
+- task: Bash@3
+  displayName: 'Display Environment Info'
+  inputs:
+    targetType: 'inline'
+    script: |
+      echo "OS: $(uname -s)"
+      echo "Kernel: $(uname -r)"
+      echo "Build: $(Build.BuildNumber)"
+
+
+
+- task: Bash@3
+  displayName: 'Generate Metadata'
+  inputs:
+    targetType: 'inline'
+    script: |
+      cat > artifacts/build-info.json <<EOF
+      {
+        "appName": "$(appName)",
+        "version": "$(version)",
+        "buildNumber": "$(Build.BuildNumber)",
+        "date": "$(date '+%Y-%m-%d %H:%M:%S')"
+      }
+      EOF
+------------------------------------
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: echo "Step 1 - Env" && uname -a && pwd
+  displayName: 'Show environment'
+
+- script: |
+    echo "Step 2 - Create file"
+    echo "build_number=$(Build.BuildId)" > buildinfo.txt
+    echo "timestamp=$(date -Iseconds)" >> buildinfo.txt
+    cat buildinfo.txt
+  displayName: 'Create build info file'
+
+- script: |
+    echo "Step 3 - Validate file"
+    test -s buildinfo.txt && echo "File is non-empty" || (echo "File missing or empty"; exit 1)
+  displayName: 'Validate build info'
+
+- script: |
+    echo "Step 4 - Network check"
+    curl -s https://httpbin.org/get | head -n 5
+  displayName: 'Network test'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: 'buildinfo.txt'
+    artifactName: 'drop'
+    publishLocation: 'Container'
+  displayName: 'Publish artifact'

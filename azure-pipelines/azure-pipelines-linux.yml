@@ -1,0 +1,92 @@
+# Azure DevOps Pipeline (Linux)
+# Save as azure-pipelines-linux.yml
+trigger:
+  branches:
+    include: [ main, develop ]
+
+# Define pipeline-level variables
+variables:
+  buildConfiguration: Release
+  buildPlatform: "Any CPU"
+  artifactName: "drop"
+  environmentName: "staging"
+
+# Link to a variable group that contains secrets
+variables:
+- group: MySecretGroup   # e.g. contains DB_PASSWORD, API_KEY
+
+# External resources (e.g., shared templates repo)
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: MyProject/Templates
+
+stages:
+- stage: Build
+  displayName: "Build Stage"
+  jobs:
+  # Job 1: Build the application
+  - job: BuildApp
+    displayName: "Build Application"
+    steps:
+    - script: echo "Compiling app in $(buildConfiguration) mode on $(buildPlatform)"
+      displayName: "Compile App"
+      env:
+        CUSTOM_ENV: "BuildJobEnvVar"   # Example environment variable
+
+    - task: DotNetCoreCLI@2
+      displayName: "Build solution"
+      inputs:
+        command: build
+        projects: '**/*.csproj'
+        arguments: '--configuration $(buildConfiguration)'
+
+    - task: DotNetCoreCLI@2
+      displayName: "Publish artifacts"
+      inputs:
+        command: publish
+        projects: '**/*.csproj'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+    - publish: $(Build.ArtifactStagingDirectory)
+      artifact: $(artifactName)
+
+  # Job 2: Run unit tests
+  - job: RunTests
+    displayName: "Run Unit Tests"
+    steps:
+    - script: echo "Running tests in $(buildConfiguration) mode"
+      displayName: "Test Info"
+    - task: DotNetCoreCLI@2
+      displayName: "Run tests"
+      inputs:
+        command: test
+        projects: '**/*Tests.csproj'
+        arguments: '--configuration $(buildConfiguration)'
+
+- stage: Deploy
+  displayName: "Deploy Stage"
+  dependsOn: Build
+  jobs:
+  - job: DeployJob
+    displayName: "Deploy to environment"
+    steps:
+    # Use a reusable template from external repo
+    - template: deploy-template.yml@templates
+      parameters:
+        environmentName: $(environmentName)
+        artifactName: $(artifactName)
+
+    # Example of using a secret variable
+    - script: echo "Using secret DB password: $(DB_PASSWORD)"
+      displayName: "Show secret usage"
+      env:
+        DB_PASSWORD: $(DB_PASSWORD)   # Secret injected as env var
+
+    # Example of using a Service Connection to deploy to Azure
+    - task: AzureWebApp@1
+      displayName: "Deploy to Azure Web App"
+      inputs:
+        azureSubscription: "MyServiceConnection"   # Service Connection name
+        appName: "my-web-app"
+        package: "$(Pipeline.Workspace)/$(artifactName)/**/*.zip"
