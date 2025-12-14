@@ -43,18 +43,26 @@ This directory contains example files to help you prepare for the live assignmen
 
 4. Create AKS cluster:
    ```bash
-    az aks create \
-    --resource-group rg-k8s-practice \
-    --name aks-practice-cluster \
-    --location swedencentral \
-    --node-count 2 \
-    --node-vm-size Standard_B2s_v2 \
-    --generate-ssh-keys \
-        --enable-addons monitoring 
+   RESOURCE_GROUP="rg-k8s-practice"
+   CLUSTER_NAME="observability-cluster"
+   LOCATION="swedencentral"
+   NODE_COUNT=2
+   NODE_SIZE="Standard_B2s_v2 "
+
+   az aks create \
+   --resource-group $RESOURCE_GROUP \
+   --name $CLUSTER_NAME \
+   --node-count $NODE_COUNT \
+   --node-vm-size $NODE_SIZE \
+   --enable-managed-identity \
+   --generate-ssh-keys \
+   --network-plugin azure \
+   --network-policy azure \
+    --enable-addons monitoring
    ```
 5. Get credentials for kubectl:
    ```bash
-   az aks get-credentials --resource-group rg-k8s-practice --name aks-practice-cluster
+   az aks get-credentials --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME
    ```
 
 6. Get nodes

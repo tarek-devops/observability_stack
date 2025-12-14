@@ -28,7 +28,7 @@ spec:
         args:
           - '--config.file=/etc/prometheus/prometheus.yml'
           - '--storage.tsdb.path=/prometheus'
-          - '--web.external-url=http://demo123.swedencentral.cloudapp.azure.com/'
+          - '--web.external-url=http://demo123.swedencentral.cloudapp.azure.com/prometheus'
           - '--web.route-prefix=/'
         ports:
         - containerPort: 9090

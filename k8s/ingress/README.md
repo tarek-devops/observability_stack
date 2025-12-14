@@ -33,13 +33,12 @@ Install Nginx ingress controller for Azure
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo update
 
+
 helm install ingress-nginx ingress-nginx/ingress-nginx \
   --namespace ingress-nginx \
   --create-namespace \
-  --set controller.metrics.enabled=true \
-  --set-string controller.podAnnotations."prometheus\.io/scrape"="true" \
-  --set-string controller.podAnnotations."prometheus\.io/port"="10254"
-
+  --set controller.service.type=LoadBalancer \
+  --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz
 
 kubectl get services -A
 

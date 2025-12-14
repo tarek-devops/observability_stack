@@ -1,9 +1,16 @@
-Key Ports
+kubectl get nodes -o wide
+NAME                                STATUS   ROLES    AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+aks-nodepool1-11079928-vmss000000   Ready    <none>   17h   v1.33.5   10.224.0.33   <none>        Ubuntu 22.04.5 LTS   5.15.0-1099-azure   containerd://1.7.29-1
+aks-nodepool1-11079928-vmss000001   Ready    <none>   17h   v1.33.5   10.224.0.4    <none>        Ubuntu 22.04.5 LTS   5.15.0-1099-azure   containerd://1.7.29-1
 
-4317: OTLP gRPC
-4318: OTLP HTTP
-9090: Prometheus
-3000: Grafana
+kubectl get service -A
+NAMESPACE       NAME                                 TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)                      AGE
+default         kubernetes                           ClusterIP      10.0.0.1       <none>        443/TCP                      17h
+ingress-nginx   ingress-nginx-controller             LoadBalancer   10.0.104.106   4.165.21.58   80:31479/TCP,443:30332/TCP   16s
+ingress-nginx   ingress-nginx-controller-admission   ClusterIP      10.0.216.200   <none>        443/TCP                      16s
+kube-system     kube-dns                             ClusterIP      10.0.0.10      <none>        53/UDP,53/TCP                17h
+kube-system     metrics-server                       ClusterIP      10.0.66.171    <none>        443/TCP                      17h
+kube-system     npm-metrics-cluster-service          ClusterIP      10.0.117.176   <none>        9000/TCP                     17h
 
 # Service Type: ClusterIP for Promethous, otel, Grafana without any ingress controller
 ```bash

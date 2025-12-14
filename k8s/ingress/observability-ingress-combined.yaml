@@ -8,26 +8,21 @@ metadata:
     kubernetes.io/ingress.class: nginx
     # IMPORTANT: Use different rewrite for different paths
     # For Grafana and Prometheus with subpath support, don't rewrite
-    nginx.ingress.kubernetes.io/rewrite-target: "/graph"
+    nginx.ingress.kubernetes.io/rewrite-target: "/$2"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-    # Enable CORS for OTel Collector
-    nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-methods: "PUT, GET, POST, OPTIONS"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
-    # Add configuration snippet for better path handling
-    # nginx.ingress.kubernetes.io/configuration-snippet: |
-    #     proxy_set_header X-Forwarded-Prefix $request_uri;
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    # Add configuration snippet to preserve the path
 spec:
   ingressClassName: nginx  # Explicitly set the ingress class
   rules:
-  - host: "demo123.swedencentral.cloudapp.azure.com"
+  - host: demo123.swedencentral.cloudapp.azure.com
     http:
       paths:
-        - path: /
-          pathType: Prefix
-          #pathType: ImplementationSpecific
+        - path: "/prometheus(/|$)(.*)"
+          #pathType: Prefix
+          pathType: ImplementationSpecific
           backend:
             service:
               name: prometheus
