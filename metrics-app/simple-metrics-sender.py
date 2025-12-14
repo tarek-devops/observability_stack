@@ -24,7 +24,7 @@ def main():
     # Service Type: LoadBalancer
     #endpoint = os.getenv("OTEL_ENDPOINT", "http://9.223.17.201:4318/v1/metrics")
     #Service Type: ClusterIP with ingress manifest
-    endpoint = os.getenv("OTEL_ENDPOINT", "http://9.223.17.201:4318/collector/v1/metrics")
+    endpoint = os.getenv("OTEL_ENDPOINT", "http://demo123.swedencentral.cloudapp.azure.com/collector/v1/metrics")
     
     print("=" * 50)
     print("OpenTelemetry Metrics Sender")

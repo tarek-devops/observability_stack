@@ -22,7 +22,7 @@ spec:
         env:
         # CRITICAL: Configure Grafana to work on /grafana subpath
         - name: GF_SERVER_ROOT_URL
-          value: "http://observability-demo.swedencentral.cloudapp.azure.com/grafana"
+          value: "http://demo123.swedencentral.cloudapp.azure.com/grafana"
         - name: GF_SERVER_SERVE_FROM_SUB_PATH
           value: "true"
         volumeMounts:

@@ -6,7 +6,8 @@ metadata:
   labels:
     grafana_datasource: "1"
 data:
-# url: http://prometheus.observability.svc.cluster.local:9090
+# we can use this url at line 16 as well since Grafana is in the same namespace with prometheus
+# url : http://prometheus.observability.svc.cluster.local:9090
   datasources.yaml: |
     apiVersion: 1
     datasources:
