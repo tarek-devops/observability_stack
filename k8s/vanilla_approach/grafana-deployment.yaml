@@ -1,0 +1,51 @@
+# Grafana Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:latest
+        ports:
+        - containerPort: 3000
+        env:
+        # CRITICAL: Configure Grafana to work on /grafana subpath
+        - name: GF_SERVER_ROOT_URL
+          value: "http://demo123.swedencentral.cloudapp.azure.com/grafana"
+        - name: GF_SERVER_SERVE_FROM_SUB_PATH
+          value: "true"
+        volumeMounts:
+        - name: grafana-ds
+          mountPath: /etc/grafana/provisioning/datasources
+      volumes:
+      - name: grafana-ds
+        configMap:
+          name: grafana-datasources
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: observability
+spec:
+  #type: NodePort
+  #type: LoadBalancer
+  type: ClusterIP
+  ports:
+  - port: 3000
+    targetPort: 3000
+    #nodePort: 32000
+  selector:
+    app: grafana
