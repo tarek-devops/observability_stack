@@ -1,4 +1,5 @@
-apiVersion: gateway.networking.k8s.io/v1beta1
+# Gateway API Gateway definition for Observability Stack
+apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: observability-gateway
@@ -6,9 +7,7 @@ metadata:
 spec:
   gatewayClassName: nginx
   listeners:
-  - name: http
-    protocol: HTTP
-    port: 80
-    allowedRoutes:
-      namespaces:
-        from: Same
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: demo-gateway.swedencentral.cloudapp.azure.com
