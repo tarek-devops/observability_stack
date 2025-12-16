@@ -1,0 +1,111 @@
+# HTTPRoute for Prometheus, Grafana, and Otel Collector using Gateway API
+# This file defines separate HTTPRoute rules for each service, similar to separate Ingress resources.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: prometheus-http-route
+  namespace: observability
+spec:
+  parentRefs:
+    - name: observability-gateway
+  hostnames:
+    - demo-gateway.swedencentral.cloudapp.azure.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /prometheus
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: kube-prometheus-stack-prometheus
+          port: 9090
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grafana-http-route
+  namespace: observability
+spec:
+  parentRefs:
+    - name: observability-gateway
+  hostnames:
+    - demo-gateway.swedencentral.cloudapp.azure.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /grafana
+      backendRefs:
+        - name: kube-prometheus-stack-grafana
+          port: 3000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: otel-http-route
+  namespace: observability
+spec:
+  parentRefs:
+    - name: observability-gateway
+  hostnames:
+    - demo-gateway.swedencentral.cloudapp.azure.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: otel-collector-collector
+          port: 4318
+    # # Match /v1/traces (for traces)
+    # - matches:
+    #     - path:
+    #         type: PathPrefix
+    #         value: /v1/traces
+    #   backendRefs:
+    #     - name: otel-collector-collector
+    #       port: 4318
+    #       namespace: observability
+    # # Match /v1/logs (for logs)
+    # - matches:
+    #     - path:
+    #         type: PathPrefix
+    #         value: /v1/logs
+    #   backendRefs:
+    #     - name: otel-collector-collector
+    #       port: 4318
+    #       namespace: observability
+---
+# HTTPRoute for OTel Collector Metrics endpoint (for debugging)
+# This allows you to view the metrics that Prometheus will scrape
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: otel-metrics-http-route
+  namespace: observability
+spec:
+  parentRefs:
+    - name: observability-gateway
+      namespace: observability
+  hostnames:
+    - demo-gateway.swedencentral.cloudapp.azure.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /otel-metrics
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /metrics
+      backendRefs:
+        - name: otel-collector-collector
+          port: 8889
+          namespace: observability

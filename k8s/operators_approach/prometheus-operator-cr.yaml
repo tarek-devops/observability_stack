@@ -1,0 +1,33 @@
+# Prometheus Operator Custom Resource Example
+# This file defines a Prometheus instance using the Prometheus Operator
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+  namespace: observability
+spec:
+  replicas: 1
+  serviceAccountName: prometheus
+  serviceMonitorSelector:
+    matchLabels:
+      team: observability
+  resources:
+    requests:
+      memory: 400Mi
+  serviceMonitorNamespaceSelector: {}
+  alerting:
+    alertmanagers: []
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: observability
+spec:
+  type: ClusterIP
+  ports:
+    - name: web
+      port: 9090
+      targetPort: 9090
+  selector:
+    prometheus: prometheus

@@ -17,7 +17,7 @@ This directory contains example files to help you prepare for the live assignmen
 
 # How to Set Up and Test on Azure AKS
 
-## 1. Create an AKS Cluster
+## Create an AKS Cluster
 
 1. Install Azure CLI: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli
 2. Login to Azure:
@@ -35,6 +35,7 @@ This directory contains example files to help you prepare for the live assignmen
    ```bash
    az group create --name rg-k8s-practice --location swedencentral
 
+   # Optional
    az provider register --namespace Microsoft.OperationalInsights --subscription azure_free_sub
    az provider show --namespace Microsoft.Insights --query "registrationState"
 
@@ -67,76 +68,24 @@ This directory contains example files to help you prepare for the live assignmen
 
 6. Get nodes
      ```bash
-    kubectl get nodes
+     
+    kubectl get nodes -o wide
+    >
+      NAME                                STATUS   ROLES    AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+      aks-nodepool1-11079928-vmss000000   Ready    <none>   26h   v1.33.5   10.224.0.33   <none>        Ubuntu 22.04.5 LTS   5.15.0-1099-azure   containerd://1.7.29-1
+      aks-nodepool1-11079928-vmss000001   Ready    <none>   26h   v1.33.5   10.224.0.4    <none>        Ubuntu 22.04.5 LTS   5.15.0-1099-azure   containerd://1.7.29-1
     kubectl cluster-info
     >
-    Kubernetes control plane is running at https://aks-practi-rg-k8s-practice-f6b1d4-5jyxw8uy.hcp.swedencentral.azmk8s.io:443
-    CoreDNS is running at https://aks-practi-rg-k8s-practice-f6b1d4-5jyxw8uy.hcp.swedencentral.azmk8s.io:443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
-    Metrics-server is running at https://aks-practi-rg-k8s-practice-f6b1d4-5jyxw8uy.hcp.swedencentral.azmk8s.io:443/api/v1/namespaces/kube-system/services/https:metrics-server:/proxy
+      Kubernetes control plane is running at https://observabil-rg-k8s-practice-f6b1d4-2llhmr90.hcp.swedencentral.azmk8s.io:443
+      CoreDNS is running at https://observabil-rg-k8s-practice-f6b1d4-2llhmr90.hcp.swedencentral.azmk8s.io:443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+      Metrics-server is running at https://observabil-rg-k8s-practice-f6b1d4-2llhmr90.hcp.swedencentral.azmk8s.io:443/api/v1/namespaces/kube-system/services/https:metrics-server:/proxy
+
+      To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
     ```
-## 2. Create Namespace (if needed)
+-------------------------------------------
+
+## Verify metrics are received by Otel collector
 ```bash
-kubectl create namespace observability
-kubectl config set-context --current --namespace=observability
-```
-
-
-
-## 3. Build Metrics Application
-```bash
-cd metrics-app
-pip install -r requirements.txt
-
-# Test directly
-python simple-metrics-sender.py
-
-# Build Windows .exe
-pip install pyinstaller
-pyinstaller --onefile --name metrics-sender simple-metrics-sender.py
-# Output: dist/metrics-sender.exe
-```
-
-## 4. Deploy Prometheus, Grafana, and OpenTelemetry Collector
-Apply all manifests in the `k8s/` folder:
-```bash
-kubectl apply -f k8s//otel-collector-config.yaml
-kubectl apply -f k8s/otel-collector-deployment.yaml
-kubectl apply -f k8s/prometheus-config.yaml
-kubectl apply -f k8s/prometheus-deployment.yaml
-kubectl apply -f k8s/grafana-config
-kubectl apply -f k8s/grafana-deployment.yaml 
-
-
-OR
-chmod +x deploy-stack.sh
-./deploy-stack.sh
-
-# Wait for external IPs
-kubectl get svc -n observability -w
-kubectl -n observability port-forward deploy/prometheus 9090:9090 &
-kubectl -n observability port-forward deploy/grafana 3000:3000 &
-kubectl -n observability port-forward deploy/otel-collector 4318:4318 &
-
-```
-Test Metrics Sending
-```bash
-# Get OTel Collector IP
-export OTEL_IP=$(kubectl get svc otel-collector -n observability -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-
-# Set endpoint for HTTP (port 4318)
-export OTEL_ENDPOINT=http://$OTEL_IP:4318/v1/metrics
-
-# Run metrics app based on your platform
-cd ../metrics-app
-./metrics-sender.exe  # Windows
-OR
-./metrics-sender-linux  # Linux
-OR
-python simple-metrics-sender.py  # Any platform
-```
-
-## 5. Verify metrics are received by Otel collector
-```
 kubectl logs deploy/otel-collector -n observability
 # Add a debug container
 kubectl debug pods/prometheus- -it --image=busybox --target=<container-name>
@@ -164,15 +113,3 @@ kubectl exec -it <pod-name> -c debug-container -- sh
 kubectl cp observability/otel-collector-5756646988-5nvsr:/etc/otel-collector-config.yaml ./otel-config.yaml
 
 ```
-
-## 5.Verify in Grafana
-```bash
-# Get Grafana IP
-kubectl get svc grafana -n observability
-
-# Open in browser: http://<GRAFANA-IP>:3000
-# Login: admin / admin
-# Navigate to: Explore > Prometheus
-# Query: http_requests_total
-```
-

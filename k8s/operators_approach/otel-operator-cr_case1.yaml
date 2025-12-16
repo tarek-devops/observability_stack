@@ -1,0 +1,87 @@
+# OpenTelemetry Operator Custom Resource Example
+# This file defines an OpenTelemetry Collector instance using the OpenTelemetry Operator
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: observability
+spec:
+  mode: deployment
+  replicas: 1
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+          # Prometheus receiver to scrape OTel Collector's own metrics
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'otel-collector-internal'
+              scrape_interval: 5s
+              static_configs:
+                - targets: ['localhost:8888']
+    exporters:
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+    service:
+      pipelines:
+        metrics:
+          receivers: [otlp]
+          exporters: [prometheus]
+  ports:
+    - name: otlp-grpc
+      port: 4317
+    - name: otlp-http
+      port: 4318
+    - name: prometheus
+      port: 8889
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: otel-collector-metrics
+  namespace: observability
+  labels:
+    app: otel-collector
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: opentelemetry-collector
+  endpoints:
+    - port: prometheus
+      path: /metrics
+      interval: 5s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: observability
+  labels:
+    app.kubernetes.io/component: opentelemetry-collector
+    app.kubernetes.io/instance: observability.otel-collector
+    app.kubernetes.io/managed-by: opentelemetry-operator
+    app.kubernetes.io/part-of: opentelemetry
+spec:
+  type: ClusterIP
+  ports:
+    - name: grpc
+      port: 4317
+      targetPort: 4317
+    - name: http
+      port: 4318
+      targetPort: 4318
+    - name: prometheus
+      port: 8889
+      targetPort: 8889
+  selector:
+    app.kubernetes.io/component: opentelemetry-collector
+    app.kubernetes.io/instance: observability.otel-collector
+    app.kubernetes.io/managed-by: opentelemetry-operator
+    app.kubernetes.io/part-of: opentelemetry

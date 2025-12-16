@@ -1,0 +1,172 @@
+# OpenTelemetry Collector Instance - Updated to expose received metrics for Prometheus
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: observability
+spec:
+  mode: deployment
+  replicas: 1
+  config:
+    receivers:
+      # OTLP receiver for traces, metrics, and logs from your Python app
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+            cors:
+              allowed_origins:
+                - "*"
+      
+      # Prometheus receiver to scrape OTel Collector's own metrics
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'otel-collector-internal'
+              scrape_interval: 5s
+              static_configs:
+                - targets: ['localhost:8888']
+
+    processors:
+      # Batch processor for better performance
+      batch:
+        timeout: 10s
+        send_batch_size: 1024
+      
+      # Memory limiter to prevent OOM
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 15
+      
+      # Resource processor to add custom attributes
+      resource:
+        attributes:
+          - key: service.name
+            value: otel-collector
+            action: upsert
+          - key: environment
+            value: production
+            action: upsert
+      
+      # Add metric name prefix if needed
+      metricstransform:
+        transforms:
+          - include: .*
+            match_type: regexp
+            action: update
+            operations:
+              - action: add_label
+                new_label: collected_by
+                new_value: otel-collector
+
+    exporters:
+      # Prometheus exporter - THIS IS KEY!
+      # Exposes all received metrics from your Python app on :8889/metrics
+      # so Prometheus can scrape them
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        namespace: app
+        const_labels:
+          cluster: aks-demo
+          collector: otel
+        # IMPORTANT: This makes metrics from your Python app available
+        resource_to_telemetry_conversion:
+          enabled: true
+      
+      # Logging exporter for debugging
+      debug:
+        verbosity: detailed
+        sampling_initial: 5
+        sampling_thereafter: 200
+      
+      # Optional: Send to another backend
+      # otlp:
+      #   endpoint: "tempo.observability.svc.cluster.local:4317"
+      #   tls:
+      #     insecure: true
+
+    service:
+      pipelines:
+        # Traces pipeline
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch, resource]
+          exporters: [debug]
+        
+        # Metrics pipeline - CRITICAL FOR YOUR USE CASE
+        # This receives metrics from your Python app via OTLP HTTP (port 4318)
+        # and exports them to Prometheus exporter (port 8889)
+        metrics:
+          receivers: [otlp, prometheus]  # otlp receives from your Python app
+          processors: [memory_limiter, resource, batch]  # Don't use metricstransform yet, can cause issues
+          exporters: [prometheus, debug]  # prometheus exporter makes metrics available for scraping
+        
+        # Logs pipeline
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch, resource]
+          exporters: [debug]
+      
+      telemetry:
+        logs:
+          level: info
+        metrics:
+          level: detailed
+          address: 0.0.0.0:8888
+
+---
+# ServiceMonitor - Tells Prometheus to scrape OTel Collector's Prometheus exporter endpoint
+# This will scrape metrics received from your Python app AND OTel Collector's internal metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: otel-collector-app-metrics
+  namespace: observability
+  labels:
+    app: otel-collector
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: opentelemetry-collector
+  endpoints:
+    # Scrape the Prometheus exporter endpoint (8889)
+    # This contains metrics from your Python app
+    - port: prometheus
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+
+---
+# PodMonitor - Alternative way to scrape OTel Collector pods directly
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: otel-collector-pods
+  namespace: observability
+  labels:
+    app: otel-collector
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: opentelemetry-collector
+  podMetricsEndpoints:
+    # Scrape internal metrics (8888)
+    - port: metrics
+      path: /metrics
+      interval: 30s
+    # Scrape Prometheus exporter with app metrics (8889)
+    - port: prometheus
+      path: /metrics
+      interval: 15s
+      honorLabels: true

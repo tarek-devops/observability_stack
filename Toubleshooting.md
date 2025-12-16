@@ -1,3 +1,4 @@
+# Vanilla Approach
 kubectl get nodes -o wide
 NAME                                STATUS   ROLES    AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
 aks-nodepool1-11079928-vmss000000   Ready    <none>   17h   v1.33.5   10.224.0.33   <none>        Ubuntu 22.04.5 LTS   5.15.0-1099-azure   containerd://1.7.29-1
@@ -29,32 +30,10 @@ prometheus       ClusterIP   10.0.212.61    <none>        9090/TCP              
 grafana          NodePort    10.0.236.29    <none>        3000:32000/TCP               7s    app=grafana
 ```
 
-# Service Type: LoadBalancer , otel, Grafana , ClusterIP for Prometheus
-Both grafana service and otel-collector service have own public IP address
- 135.225.7.29:3000
- 9.223.17.201:4318
- We used port-forwarding for prometheus
+
+
 ```bash
-kubectl get services -n observability
-NAME             TYPE           CLUSTER-IP     EXTERNAL-IP    PORT(S)                                        AGE
-grafana          LoadBalancer   10.0.236.29    135.225.7.29   3000:32000/TCP                                 5h4m
-otel-collector   LoadBalancer   10.0.198.103   9.223.17.201   4317:32579/TCP,4318:31761/TCP,8889:32334/TCP   5h26m
-prometheus       ClusterIP      10.0.212.61    <none>         9090/TCP                                       5h14m
-```
-# Service Type: ClusterIP for otel, Grafana , Prometheus with ingress manifest
-All Prometheus service and grafana service and otel-collector service have the same public IP address, the IP is belong the ingress controller IP
-20.240.74.223/grafana
-20.240.74.223/prometheus
-20.240.74.223/collector/v1/metrics
-but ingress manifest requires to have DNS instead of IP, Azure Portal: Go to Public IP addresses → select your IP → Settings > Configuration, set DNS name label as observability-demo
-so DNS name is observability-demo.swedencentral.cloudapp.azure.com
-http://observability-demo.swedencentral.cloudapp.azure.com/prometheus
-```bash
-kubectl get svc -n observability
-NAME             TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)                      AGE
-grafana          ClusterIP   10.0.236.29    <none>        3000/TCP                     2d3h
-otel-collector   ClusterIP   10.0.198.103   <none>        4317/TCP,4318/TCP,8889/TCP   2d3h
-prometheus       ClusterIP   10.0.212.61    <none>        9090/TCP                     2d3h
+TCP                     2d3h
 
 kubectl get svc -n ingress-basic
 NAME                                 TYPE           CLUSTER-IP    EXTERNAL-IP     PORT(S)                      AGE

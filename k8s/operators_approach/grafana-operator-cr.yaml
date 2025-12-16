@@ -1,0 +1,30 @@
+# Grafana Operator Custom Resource Example
+# This file defines a Grafana instance using the Grafana Operator
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: grafana
+  namespace: observability
+spec:
+  config:
+    server: 
+      root_url: http://demo-gateway.swedencentral.cloudapp.azure.com/grafana 
+      serve_from_sub_path: "true"
+    log:
+      mode: "console"
+    auth:
+      disable_signout_menu: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: observability
+spec:
+  type: ClusterIP
+  ports:
+    - name: web
+      port: 3000
+      targetPort: 3000
+  selector:
+    app: grafana

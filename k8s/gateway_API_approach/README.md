@@ -144,6 +144,7 @@ observability   observability-http-route   ["demo-gateway.swedencentral.cloudapp
 ## 4. Verify and Test
 
 ```bash
+kubectl get gatewayclass -A
 kubectl get gateway -n observability
 kubectl get httproute -n observability
 kubectl get svc -n observability

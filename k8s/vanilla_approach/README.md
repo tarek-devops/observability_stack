@@ -59,7 +59,11 @@ Access UIs:
    📊 [00:30:04] Sent metrics: requests=308, duration=0.385s
    ```
 2. In Prometheus UI, run query: `http_requests_total`
-3. In Grafana, login (admin/admin), go to Explore > Prometheus, and query: `http_requests_total`
+3. In Grafana, login (admin/admin), 
+in grafana-config.yaml set url: `http://prometheus:9090` or `http://prometheus.observability.svc.cluster.local:9090`
+go to Connections > Data sources > Prometheus > Test connection
+then 
+Explore > Prometheus, and query: `http_requests_total`
 
 ---
 
@@ -154,12 +158,19 @@ you will see a rule that allows connection to internet
    ```
 
 #### How to Test
- Run the metrics sender and check Prometheus and Grafana as above, but use the DNS URLs:
-   - Prometheus: http://<DNS>/prometheus http://demo123.swedencentral.cloudapp.azure.com/prometheus/Query
+ 1. Run the metrics sender 
+ 2. check otel page will show the following to indicate otel is working properly.
+   `http://demo123.swedencentral.cloudapp.azure.com/collector/v1/metrics`  
+
+   `405 method not allowed, supported: [POST]`
+ 3. check Prometheus and Grafana as above, but use the DNS URLs:
+   - Prometheus: http://<DNS>/prometheus http://demo123.swedencentral.cloudapp.azure.com/prometheus
    - Grafana: http://<DNS>/grafana  http://demo123.swedencentral.cloudapp.azure.com/grafana/
       Login: admin / admin
-      Navigate to: Explore > Prometheus
-      Query: http_requests_total
+   in grafana-config.yaml set url: `http://demo123.swedencentral.cloudapp.azure.com`
+   go to Connections > Data sources > Prometheus > Test connection
+   then 
+   Explore > Prometheus, and query: `http_requests_total`
 
 ---
 
