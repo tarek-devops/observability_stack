@@ -1,0 +1,113 @@
+
+# Pipeline: Pass output between jobs, use env vars, publish artifact
+trigger:
+  - main
+
+pool:
+  name: Default
+
+jobs:
+- job: Job1
+  displayName: 'Job 1: Generate Output'
+  steps:
+    - script: |
+        echo "Hello from Job 1!" > message.txt
+      displayName: 'Create output file'
+    
+    - publish: message.txt
+      artifact: job1-artifact
+
+    # Set output variable for next job
+    - name: SetOutput
+      script: echo "##vso[task.setvariable variable=job1Output;isOutput=true]PipelineOutputValue"
+      displayName: 'Set output variable for Job 2'
+    - name: Show output
+      displayName: 'Show output variable'
+      env:
+        env_job1Output: $(job1Output)
+      script: |
+        echo "Job 1 output variable set to: $(env_job1Output)"
+      
+
+- job: Job2
+  displayName: 'Job 2: Consume Output'
+  dependsOn: Job1
+  variables:
+    job1Output: $[ dependencies.Job1.outputs['SetOutput.job1Output'] ]
+  steps:
+    - download: current
+      artifact: job1-artifact
+    - script: |
+        echo "Job 2 received output: $(job1Output)"
+        echo "workspace is: $(Pipeline.Workspace)"
+        echo "Contents of message.txt:"
+        cat message.txt
+      displayName: 'Show output and artifact from Job 1'
+    - publish: message.txt
+      artifact: job2-artifact
+
+
+# Job 3: Checkout the repository
+- job: Job3
+  displayName: 'Job 3: Checkout Repository'
+  dependsOn: Job2
+  steps:
+    - checkout: self
+      displayName: 'Checkout source code'
+
+# Job 4: Use a template in steps
+- job: Job4
+  displayName: 'Job 4: Use Template Step'
+  dependsOn: Job3
+  steps:
+    - template: ../deploy-template.yml
+      parameters:
+        environment: 'test'
+
+# Job 5: Read from secret variable
+- job: Job5
+  displayName: 'Job 5: Read Secret Variable'
+  dependsOn: Job4
+  variables:
+    - group: MySecretGroup  # Make sure this variable group exists and contains SECRET_VALUE
+  steps:
+    - script: |
+        echo "Reading secret variable..."
+        echo "The secret value is: $SECRET_VALUE"
+      displayName: 'Read and print secret variable'
+      env:
+        SECRET_VALUE: $(SECRET_VALUE)
+
+
+
+# Job 6: Read environment variable
+- job: Job6
+  displayName: 'Job 6: Read Environment Variable'
+  dependsOn: Job5
+  variables:
+    MY_ENV_VAR: 'This is a sample environment variable'
+  steps:
+    - name: ReadEnvVar
+      displayName: 'Read and print environment variable'
+      env:
+        MY_ENV_VAR: $(MY_ENV_VAR)
+      script: |
+        echo "Reading environment variable..."
+        echo "MY_ENV_VAR is: $MY_ENV_VAR"
+      
+# Job 7: Publish to Azure Artifacts (Universal Packages)
+- job: Job7
+  displayName: 'Job 7: Publish to Azure Artifacts'
+  dependsOn: Job6
+  steps:
+    - download: current
+      artifact: job2-artifact
+    - task: UniversalPackages@0
+      displayName: 'Publish Universal Package to Azure Artifacts'
+      inputs:
+        command: publish
+        publishDirectory: '$(Pipeline.Workspace)/job2-artifact'
+        feedsToUse: 'internal'
+        vstsFeedPublish: 'tarekderi0145'
+        packagePublishName: 'message-artifact'
+        packagePublishVersion: '1.$(Build.BuildId)'
