@@ -110,3 +110,77 @@ Azure Pipelines:
 ❌ Wrong variable syntax: '$(var)' vs "$(var)"
 ❌ Path issues: Always use relative paths
 ❌ Forgetting to add files to artifacts before publishing
+
+
+---
+
+kubectl describe -n observability  pods/otel-collector-5756646988-5nvsr 
+
+kubectl debug -n observability  pods/otel-collector -it --image=busybox --target=otel-collector-container
+OR
+kubectl run tmp --rm -it --image=busybox -n observability -- /bin/sh
+kubectl exec deploy/ingress-nginx-controller -n ingress-nginx   -- curl -s prometheus.observability.svc.cluster.local:9090
+
+# Look for resource-related events
+kubectl get events --sort-by=.metadata.creationTimestamp -n <namespace>
+# Get the current pod logs (before it crashes again)
+kubectl logs <pod-name> -c <container-name> -n <namespace>
+
+# Get logs from the previous crashed instance
+kubectl logs <pod-name> -n <namespace> --previous
+
+# Follow logs in real-time during a restart
+kubectl logs <pod-name> -n <namespace> -f
+
+kubectl exec -it pods/name -c container_name -- sh
+#If you want to confirm the receiver is alive:
+curl -v http://<otel-external-ip>:4318/v1/metrics
+
+curl http://localhost:8080/health
+
+--------- 
+Check service of Prometheus deployment
+curl -I http://prometheus.observability.svc.cluster.local:9090
+Check Prometheus pod Ip directly
+curl -I http://10.0.212.61:9090
+
+---------------
+kubectl rollout restart deploy/prometheus -n observability
+
+
+args: |
+ while [! -f /tmp/ready ];do   or  while ! curl -sf http://localhost:8080/; do
+  echo "waiting";
+  sleep 2;
+  done;
+  
+logs are available at:
+/var/log/messages
+/var/log/syslog
+/var/log/kubelet.log
+/var/log/container
+
+# View real-time CPU & memory per process
+top
+
+# Memory usage summary
+free -h
+
+# Disk usage
+df -h
+
+# CPU info
+lscpu
+
+Extract pod name
+kubectl get pods -n demo -o json | jq -r '.items[].metadata.name'
+
+kubectl get pod test -n demo -o json | jq -r '.metadata.name'
+ kubectl get pods/test -n demo -o yaml | yq  '.metadata.name'
+
+yq -i '.pool.name = "done"' ./pipelines/deploy.yml
+
+#YAML to JSON
+yq -o=json config.yaml
+#JSON to YAML
+yq -o=yaml config.json
